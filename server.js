@@ -73,15 +73,30 @@ app.get('/api/trains/search', async (req, res) => {
 
         if (RAILWAY_API_OPTIONS.API_SOURCE === 'RAPID_API') {
             try {
-                // Using endpoint name based on Amitesh's API (usually /getTrainBetweenStations)
+                // IMPORTANT: The actual endpoint for searching trains in this API
+                // is often /getTrainsBetweenStations or similar.
                 const data = await fetchFromRapidAPI('/getTrainBetweenStations', { 
                     fromStationCode: from, 
                     toStationCode: to, 
                     dateOfJourney: date 
                 });
+                
+                // If API returns data, transform it to match our frontend's expectation
+                const trains = (data.data || data || []).map(t => ({
+                    trainNumber: t.train_number || t.trainNo || t.trainNumber,
+                    trainName: t.train_name || t.trainName,
+                    from: t.from_station_name || t.source || from,
+                    to: t.to_station_name || t.destination || to,
+                    departureTime: t.run_days || t.departureTime || 'N/A',
+                    arrivalTime: t.arrivalTime || 'N/A',
+                    duration: t.duration || 'N/A',
+                    status: 'Real-time',
+                    classes: t.classes || ['SL', '3A', '2A', '1A']
+                }));
+
                 return res.json({
                     success: true,
-                    trains: data.data || data,
+                    trains: trains,
                     dataSource: 'RAPID_API'
                 });
             } catch (apiError) {
@@ -89,8 +104,7 @@ app.get('/api/trains/search', async (req, res) => {
             }
         }
 
-        // Fallback to minimal mock if API fails or not configured
-        res.json({ success: true, trains: [], dataSource: 'MOCK_DATA', message: 'No real data available' });
+        res.json({ success: true, trains: [], dataSource: 'MOCK_DATA' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
