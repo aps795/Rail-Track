@@ -24,6 +24,33 @@ app.get('/', (req, res) => {
     res.status(200).send('Backend is running and healthy!');
 });
 
+/**
+ * Get PNR Status
+ * GET /api/pnr/:pnrNumber
+ */
+app.get('/api/pnr/:pnrNumber', async (req, res) => {
+    try {
+        const { pnrNumber } = req.params;
+
+        if (RAILWAY_API_OPTIONS.API_SOURCE === 'RAPID_API') {
+            try {
+                const data = await fetchFromRapidAPI('/getPNRStatus', { pnrNumber });
+                return res.json({
+                    success: true,
+                    pnr: pnrNumber,
+                    data: data.data || data,
+                    dataSource: 'RAPID_API'
+                });
+            } catch (apiError) {
+                console.error('RapidAPI PNR Error:', apiError.message);
+            }
+        }
+        res.status(404).json({ success: false, message: 'PNR status not found' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // Global error handler
 app.use((err, req, res, next) => {
     console.error('SERVER ERROR:', err.stack);
