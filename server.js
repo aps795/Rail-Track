@@ -72,6 +72,38 @@ async function fetchFromRapidAPI(endpoint, params) {
 // ============================================
 
 /**
+ * Search Stations
+ * GET /api/stations/search?query=delhi
+ */
+app.get('/api/stations/search', async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) return res.status(400).json({ success: false, message: 'Missing query' });
+
+        if (RAILWAY_API_OPTIONS.API_SOURCE === 'RAPID_API') {
+            try {
+                const data = await fetchFromRapidAPI('/searchStation', { query });
+                // Map to frontend expectation: { stations: [{ name: '...', code: '...' }] }
+                let stations = [];
+                const rawData = data.data || data || [];
+                if (Array.isArray(rawData)) {
+                    stations = rawData.map(s => ({
+                        name: s.station_name || s.name || s.stationName,
+                        code: s.station_code || s.code || s.stationCode
+                    }));
+                }
+                return res.json({ success: true, stations, dataSource: 'RAPID_API' });
+            } catch (apiError) {
+                console.error('RapidAPI Station Error:', apiError.message);
+            }
+        }
+        res.json({ success: true, stations: [], dataSource: 'MOCK_DATA' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
  * Search Trains Between Two Stations
  * GET /api/trains/search?from=NDLS&to=CSTM&date=2024-01-15
  */
@@ -85,26 +117,27 @@ app.get('/api/trains/search', async (req, res) => {
 
         if (RAILWAY_API_OPTIONS.API_SOURCE === 'RAPID_API') {
             try {
-                // IMPORTANT: The actual endpoint for searching trains in this API
-                // is often /getTrainsBetweenStations or similar.
                 const data = await fetchFromRapidAPI('/getTrainBetweenStations', { 
                     fromStationCode: from, 
                     toStationCode: to, 
                     dateOfJourney: date 
                 });
                 
-                // If API returns data, transform it to match our frontend's expectation
-                const trains = (data.data || data || []).map(t => ({
-                    trainNumber: t.train_number || t.trainNo || t.trainNumber,
-                    trainName: t.train_name || t.trainName,
-                    from: t.from_station_name || t.source || from,
-                    to: t.to_station_name || t.destination || to,
-                    departureTime: t.run_days || t.departureTime || 'N/A',
-                    arrivalTime: t.arrivalTime || 'N/A',
-                    duration: t.duration || 'N/A',
-                    status: 'Real-time',
-                    classes: t.classes || ['SL', '3A', '2A', '1A']
-                }));
+                let trains = [];
+                const rawData = data.data || data || [];
+                if (Array.isArray(rawData)) {
+                    trains = rawData.map(t => ({
+                        trainNumber: t.train_number || t.trainNo || t.trainNumber,
+                        trainName: t.train_name || t.trainName,
+                        from: t.from_station_name || t.source || from,
+                        to: t.to_station_name || t.destination || to,
+                        departureTime: t.departure_time || t.run_days || 'N/A',
+                        arrivalTime: t.arrival_time || t.arrivalTime || 'N/A',
+                        duration: t.duration || 'N/A',
+                        status: 'Real-time',
+                        classes: t.classes || ['SL', '3A', '2A', '1A']
+                    }));
+                }
 
                 return res.json({
                     success: true,
@@ -150,14 +183,16 @@ app.get('/api/trains/:trainNo/route', async (req, res) => {
 
 /**
  * Get Live Train Status
+ * GET /api/trains/:trainNo/status
  */
-app.get('/api/live-status/:trainNo/:date', async (req, res) => {
+app.get('/api/trains/:trainNo/status', async (req, res) => {
     try {
-        const { trainNo, date } = req.params;
+        const { trainNo } = req.params;
+        const date = new Date().toISOString().split('T')[0]; // Use today's date
 
         if (RAILWAY_API_OPTIONS.API_SOURCE === 'RAPID_API') {
             try {
-                const data = await fetchFromRapidAPI('/getLiveTrainStatus', { trainNo, startDay: '0' }); // 0 for today
+                const data = await fetchFromRapidAPI('/getLiveTrainStatus', { trainNo, startDay: '0' });
                 return res.json({
                     success: true,
                     trainNo,

@@ -94,16 +94,17 @@ async function fetchTrains(from, to, date, classType = '') {
     if (classType) query.set('classType', classType);
     const response = await apiFetch(`/trains/search?${query.toString()}`);
     if (response.ok && response.data?.success) {
-        // If real data exists, use it. Otherwise, fallback to mock if no trains found.
+        // If real data exists, return it.
         if (response.data.trains && response.data.trains.length > 0) {
             return response.data.trains;
         }
     }
-    // Fallback for demo if backend fails or returns empty
-    return getMockTrains(from, to, date);
+    // Return empty list if no real trains found, so user knows there's no data
+    return [];
 }
 
 async function fetchTrainStatus(trainNumber) {
+    // Backend endpoint is /api/trains/:trainNo/status
     const response = await apiFetch(`/trains/${trainNumber}/status`);
     if (response.ok && response.data?.success) {
         return response.data;

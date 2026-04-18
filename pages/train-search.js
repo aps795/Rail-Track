@@ -136,27 +136,25 @@ async function handleTrainSearch(e) {
 
     try {
         const trains = await RailTrack.fetchTrains(from, to, date, classType);
-        let filteredTrains = trains;
+        let filteredTrains = trains || [];
 
-        if (!trains || trains.length === 0) {
-            filteredTrains = RailTrack.getMockTrains(from, to, date);
-        }
-
-        if (classType) {
-            filteredTrains = filteredTrains.filter(train => train.classes.includes(classType));
+        if (classType && filteredTrains.length > 0) {
+            filteredTrains = filteredTrains.filter(train => train.classes && train.classes.includes(classType));
         }
 
         displayResults(from, to, date, filteredTrains);
         showLoading(false);
 
-        RailTrack.addToSearchHistory({
-            from,
-            to,
-            journeyDate: date,
-            classType,
-            searchTime: new Date().toISOString(),
-            resultsCount: filteredTrains.length
-        });
+        if (filteredTrains.length > 0) {
+            RailTrack.addToSearchHistory({
+                from,
+                to,
+                journeyDate: date,
+                classType,
+                searchTime: new Date().toISOString(),
+                resultsCount: filteredTrains.length
+            });
+        }
     } catch (error) {
         console.error('Error searching trains:', error);
         RailTrack.showError('Error searching trains. Please try again.');
