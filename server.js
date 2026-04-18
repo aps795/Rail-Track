@@ -14,15 +14,12 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
 
-// ============================================
-// Root Route
-// ============================================
 app.get('/', (req, res) => {
-    res.send({
-        status: 'online',
-        message: 'Track My Rail Backend is running!',
-        api_endpoints: '/api/...'
-    });
+    res.status(200).send('Backend is running!');
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`);
 });
 
 // ============================================
@@ -151,6 +148,3 @@ app.get('/api/live-status/:trainNo/:date', async (req, res) => {
     }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚂 Server running on port ${PORT}`);
-});
