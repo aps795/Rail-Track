@@ -12,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
 // ============================================
 // Root Route
@@ -151,7 +151,7 @@ app.get('/api/live-status/:trainNo/:date', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚂 Server running on port ${PORT}`);
 });
 
